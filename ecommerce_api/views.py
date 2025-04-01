@@ -87,3 +87,11 @@ class UserProductView(viewsets.ReadOnlyModelViewSet):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# GET /api/ekart/mycart/    x - POST, PUT, PATCH, DELETE
+class CartView(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CartSerializer
+    permission_classes = [permissions.IsAuthenticated]  
+
+    def get_queryset(self):
+        return Carts.objects.filter(user=self.request.user, status='incart').order_by('-created_date')
