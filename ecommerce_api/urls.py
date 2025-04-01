@@ -7,7 +7,8 @@ router = DefaultRouter()
 router.register('admin/categories', views.CategoryView, basename='api-admin-categories') # no need of trailing slashes
 router.register('admin/products', views.AdminProductView, basename='api-admin-products')
 router.register('users', views.CustomUserViewSet, basename='api-user')
-router.register('signup', views.SignupViewSet, basename='api_signup')
+router.register('signup', views.SignupViewSet, basename='api-signup')
+router.register('products', views.UserProductView, basename='api-user-products')
 
 
 urlpatterns=[

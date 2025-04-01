@@ -31,3 +31,16 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Products
         fields = '__all__'
 
+class CartSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(read_only=True)
+    product = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Carts
+        fields = '__all__'
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        product_id = self.context['view'].kwargs['pk']  # Get the product ID from URL kwargs
+        product = Products.objects.get(pk=product_id)  # Fetch the product
+        return Carts.objects.create(user=user, product=product, **validated_data)

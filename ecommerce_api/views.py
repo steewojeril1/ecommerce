@@ -3,7 +3,7 @@ from .serializers import *
 from .models import *
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-
+from rest_framework.decorators import action
 
 
 
@@ -62,3 +62,28 @@ class AdminProductView(viewsets.ModelViewSet):
     queryset = Products.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAdminUser]
+
+
+# we're using ReadOnlyModelViewSet because you're not allowing full access to products like admins can.
+# or we can use viewset but need to define list retrieve
+# we only want read-only access (list, retrieve). we’re not exposing POST/PUT/DELETE through this view
+class UserProductView(viewsets.ReadOnlyModelViewSet):
+    queryset = Products.objects.all()
+    serializer_class = ProductSerializer
+    # permission_classes = [permissions.IsAuthenticated]
+
+    # url: api/ekart/products/<pid>/add_to_cart/
+    @action(methods=["post"],detail=True)
+    def add_to_cart(self, request, *args, **kwargs):
+        product = self.get_object()  # shortcut: same as Products.objects.get(pk=kwargs['pk'])
+        data = {
+            "product": product.id,
+            "quantity": request.data.get("quantity", 1),
+            "status": "incart"
+        }
+
+        serializer = CartSerializer(data=data, context={"request": request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
