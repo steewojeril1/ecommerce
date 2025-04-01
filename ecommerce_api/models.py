@@ -48,3 +48,34 @@ class Carts(models.Model):
                     name='unique_active_cart_item'
                 )
             ]    # Only one active (‘incart’) item is allowed per (user, product). But if it’s already ordered or cancelled, you can add it again.
+
+
+class Orders(models.Model):
+    product = models.ForeignKey(Products, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+    created_date = models.DateTimeField(auto_now_add=True)
+    options = (
+        ('order_placed', 'Order Placed'),
+        ('dispatched', 'Dispatched'),
+        ('in_transit', 'In Transit'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled')
+    )
+    status = models.CharField(max_length=120, choices=options, default='order_placed')
+    address = models.CharField(max_length=200, null=True)
+    expected_date = models.DateTimeField(null=True)
+    # no unique together('user','product')a user can order the same product multiple times. eg: (1,2) - this can be occur again
+class Reviews(models.Model):
+    product = models.ForeignKey(Products, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    comments = models.CharField(max_length=200)
+    rating = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    
+    class Meta:
+         constraints = [
+              models.UniqueConstraint(
+                   fields=['user','product'],
+                   name='unique_review_per_product'
+              )
+         ]
