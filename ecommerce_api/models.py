@@ -1,4 +1,9 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+class CustomUser(AbstractUser):
+    phone = models.CharField(max_length=15, blank=True, null=True) # blank - Field is allowed to be empty in forms # null - Field is allowed to store NULL in the database
+    address = models.TextField(blank=True, null=True)
 
 
 class Categories(models.Model):
