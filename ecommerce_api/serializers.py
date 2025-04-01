@@ -10,6 +10,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'phone', 'address')  # Customize based on your needs
         read_only_fields = ['id']
 
+class SignupSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True) # write only
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'first_name', 'last_name', 'phone', 'address']
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)   # to hash the password use create_uer()
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
