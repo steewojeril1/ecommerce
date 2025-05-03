@@ -41,6 +41,5 @@ class CartSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        product_id = self.context['view'].kwargs['pk']  # Get the product ID from URL kwargs
-        product = Products.objects.get(pk=product_id)  # Fetch the product
+        product=self.context.get("product")
         return Carts.objects.create(user=user, product=product, **validated_data)

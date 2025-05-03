@@ -64,7 +64,7 @@ class Orders(models.Model):
     )
     status = models.CharField(max_length=120, choices=options, default='order_placed')
     address = models.CharField(max_length=200, null=True)
-    expected_date = models.DateTimeField(null=True)
+    expected_date = models.DateField(null=True)
     # no unique together('user','product')a user can order the same product multiple times. eg: (1,2) - this can be occur again
 class Reviews(models.Model):
     product = models.ForeignKey(Products, on_delete=models.CASCADE)

@@ -73,25 +73,64 @@ class UserProductView(viewsets.ReadOnlyModelViewSet):
     # permission_classes = [permissions.IsAuthenticated]
 
     # url: api/ekart/products/<pid>/add_to_cart/
-    @action(methods=["post"],detail=True)
+    @action(methods=["post"],detail=True) # detail = True (Means the action is for a single instance, i.e., it expects a pk(pid) in the URL.)
     def add_to_cart(self, request, *args, **kwargs):
         product = self.get_object()  # shortcut: same as Products.objects.get(pk=kwargs['pk'])
+        # Check if the product is already in the cart
+        existing_cart_item = Carts.objects.filter(user=request.user, product=product, status='incart').first()
+        print(existing_cart_item,'......................')
+
+        if existing_cart_item:
+            # If the product is already in the cart, increase the quantity by 1
+            existing_cart_item.quantity += 1
+            existing_cart_item.save()
+            serializer = CartSerializer(existing_cart_item)  # pass instance(object) here, not data. thats why data = not provided
+            return Response(serializer.data, status=status.HTTP_200_OK)
+    
+        # If the product is not in the cart, create a new cart item
         data = {
             "product": product.id,
             "quantity": request.data.get("quantity", 1),
             "status": "incart"
         }
 
-        serializer = CartSerializer(data=data, context={"request": request})
+        serializer = CartSerializer(data=data, context={"request": request,'product':product})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# GET /api/ekart/mycart/    x - POST, PUT, PATCH, DELETE
+# GET /api/ekart/cart/    x - POST, PUT, PATCH, DELETE
 class CartView(viewsets.ReadOnlyModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [permissions.IsAuthenticated]  
 
     def get_queryset(self):
         return Carts.objects.filter(user=self.request.user, status='incart').order_by('-created_date')
+
+
+    # url: /api/ekart/cart/count/
+    @action(methods=["get"], detail=False)
+    def count(self, request):
+        count = self.get_queryset().count()
+        return Response({"cart_count": count})
+    
+    # url: api/ekart/cart/<pid>/remove_item/
+    @action(methods=["put"], detail=True)
+    def remove_item(self, request, *args, **kwargs):
+        try:
+            # Retrieve the cart item by its ID
+            cart = Carts.objects.get(id=kwargs.get('pk'))
+            
+            # Check if the cart item is not already cancelled
+            if cart.status != 'cancelled':
+                cart.status = 'cancelled'  # Update status to 'cancelled'
+                cart.save()  # Save the updated cart item
+                
+                return Response({"msg": "Item removed from cart."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"msg": "Item already cancelled."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Carts.DoesNotExist:
+            # If the cart item is not found
+            return Response({"msg": "Cart item not found."}, status=status.HTTP_404_NOT_FOUND)
