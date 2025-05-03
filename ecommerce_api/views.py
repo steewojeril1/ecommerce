@@ -4,7 +4,7 @@ from .models import *
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
-
+from datetime import timedelta, date
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
@@ -19,11 +19,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return User.objects.filter(id=user.id)
     # post
     def perform_create(self, serializer):
-        user = self.request.user
-        if user.is_staff:
-            serializer.save()
-        else:
-            raise PermissionDenied("You are not allowed to create other users.")
+        raise PermissionDenied("You are not allowed to create other users.")
     # put/patch
     def perform_update(self, serializer):
         user = self.request.user
@@ -108,7 +104,34 @@ class CartView(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Carts.objects.filter(user=self.request.user, status='incart').order_by('-created_date')
 
+    # url: api/ekart/cart/create_order/
+    @action(methods=['post'], detail=False)
+    def create_order(self, request, *args, **kwargs):
+        cart_instances = Carts.objects.filter(user=request.user, status='incart')
 
+        if not cart_instances.exists():
+            return Response({"error": "No items in the cart to order."}, status=400)
+        
+        expected_date = date.today() + timedelta(days=10)
+        address = request.user.address
+
+        serializer = OrderSerializer(
+            data=request.data,
+            context={
+                'user': request.user,
+                'cart_instances': cart_instances,
+                'expected_date': expected_date,
+                'address': address
+            }
+        )
+
+        if serializer.is_valid():
+            created_orders = serializer.save()  # List of Orders
+            serialized_orders = OrderSerializer(created_orders, many=True)  # <-- Serialize the list
+            return Response({"orders": serialized_orders.data}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
     # url: /api/ekart/cart/count/
     @action(methods=["get"], detail=False)
     def count(self, request):
@@ -134,3 +157,14 @@ class CartView(viewsets.ReadOnlyModelViewSet):
         except Carts.DoesNotExist:
             # If the cart item is not found
             return Response({"msg": "Cart item not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+class OrderView(viewsets.ModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Orders.objects.filter(user=user).order_by('-created_date')
+
+    def create(self, request, *args, **kwargs):
+        return Response({"detail": "Order creation not allowed via this endpoint."}, status=status.HTTP_403_FORBIDDEN)

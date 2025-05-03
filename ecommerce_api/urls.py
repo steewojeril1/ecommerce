@@ -10,7 +10,7 @@ router.register('users', views.CustomUserViewSet, basename='api-user')
 router.register('signup', views.SignupViewSet, basename='api-signup')
 router.register('products', views.UserProductView, basename='api-user-products')
 router.register('cart', views.CartView, basename='cart')
-
+router.register('order', views.OrderView, basename='order')
 
 urlpatterns=[
     path('',include(router.urls))
